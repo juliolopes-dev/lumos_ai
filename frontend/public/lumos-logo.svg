@@ -1,0 +1,59 @@
+ <svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+   <defs>
+     <linearGradient id="lumos_border" x1="36" y1="36" x2="220" y2="220" gradientUnits="userSpaceOnUse">
+       <stop stop-color="#19c37d"/>
+       <stop offset="0.55" stop-color="#ab8b55"/>
+       <stop offset="1" stop-color="#0ea5e9"/>
+     </linearGradient>
+     <linearGradient id="lumos_eye" x1="104" y1="116" x2="152" y2="116" gradientUnits="userSpaceOnUse">
+       <stop stop-color="#19c37d"/>
+       <stop offset="1" stop-color="#ab8b55"/>
+     </linearGradient>
+     <filter id="lumos_shadow" x="0" y="0" width="256" height="256" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+       <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.35"/>
+     </filter>
+     <filter id="lumos_soft" x="0" y="0" width="256" height="256" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+       <feGaussianBlur stdDeviation="1.2"/>
+     </filter>
+   </defs>
+
+   <g filter="url(#lumos_shadow)">
+     <path d="M64 34H192C210.778 34 226 49.2223 226 68V188C226 206.778 210.778 222 192 222H64C45.2223 222 30 206.778 30 188V68C30 49.2223 45.2223 34 64 34Z" fill="#0b1220"/>
+     <path d="M64 38H192C208.569 38 222 51.4315 222 68V188C222 204.569 208.569 218 192 218H64C47.4315 218 34 204.569 34 188V68C34 51.4315 47.4315 38 64 38Z" stroke="url(#lumos_border)" stroke-width="4"/>
+
+     <path d="M128 56V86" stroke="#ffffff" stroke-opacity="0.25" stroke-width="6" stroke-linecap="round"/>
+     <circle cx="128" cy="50" r="12" fill="#19c37d"/>
+     <circle cx="128" cy="50" r="22" fill="#19c37d" fill-opacity="0.14"/>
+
+     <rect x="70" y="82" width="116" height="106" rx="30" fill="#111827"/>
+     <rect x="70" y="82" width="116" height="106" rx="30" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/>
+
+     <rect x="58" y="112" width="16" height="46" rx="8" fill="#0f172a"/>
+     <rect x="182" y="112" width="16" height="46" rx="8" fill="#0f172a"/>
+     <rect x="58" y="112" width="16" height="46" rx="8" stroke="url(#lumos_border)" stroke-opacity="0.55" stroke-width="3"/>
+     <rect x="182" y="112" width="16" height="46" rx="8" stroke="url(#lumos_border)" stroke-opacity="0.55" stroke-width="3"/>
+
+     <g filter="url(#lumos_soft)">
+       <circle cx="112" cy="130" r="18" fill="#19c37d" fill-opacity="0.16"/>
+       <circle cx="144" cy="130" r="18" fill="#ab8b55" fill-opacity="0.16"/>
+     </g>
+     <circle cx="112" cy="130" r="13" fill="url(#lumos_eye)"/>
+     <circle cx="144" cy="130" r="13" fill="url(#lumos_eye)"/>
+     <circle cx="112" cy="128" r="4" fill="#ffffff" fill-opacity="0.90"/>
+     <circle cx="144" cy="128" r="4" fill="#ffffff" fill-opacity="0.90"/>
+
+     <rect x="100" y="154" width="56" height="22" rx="11" fill="#0f172a"/>
+     <rect x="100" y="154" width="56" height="22" rx="11" stroke="#ffffff" stroke-opacity="0.12" stroke-width="3"/>
+     <rect x="110" y="160" width="7" height="10" rx="3.5" fill="#19c37d"/>
+     <rect x="124" y="160" width="7" height="10" rx="3.5" fill="#ab8b55"/>
+     <rect x="138" y="160" width="7" height="10" rx="3.5" fill="#0ea5e9"/>
+
+     <path d="M94 96H162" stroke="url(#lumos_border)" stroke-opacity="0.42" stroke-width="4" stroke-linecap="round"/>
+     <path d="M92 190C102 204 120 212 128 212C136 212 154 204 164 190" stroke="#ffffff" stroke-opacity="0.12" stroke-width="5" stroke-linecap="round"/>
+
+     <path d="M86 116L102 100" stroke="#ffffff" stroke-opacity="0.16" stroke-width="4" stroke-linecap="round"/>
+     <path d="M170 116L154 100" stroke="#ffffff" stroke-opacity="0.16" stroke-width="4" stroke-linecap="round"/>
+     <circle cx="102" cy="100" r="5" fill="#19c37d"/>
+     <circle cx="154" cy="100" r="5" fill="#ab8b55"/>
+   </g>
+ </svg>

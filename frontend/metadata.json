@@ -1,0 +1,7 @@
+{
+  "name": "Interface  - Lumos AI",
+  "description": "Uma interface de chat avançada estilo ChatGPT que permite criar e gerenciar múltiplos assistentes com personalidades (System Instructions) personalizadas usando a API Gemini.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
