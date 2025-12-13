@@ -2,8 +2,6 @@
 # Este arquivo serve como referência para configurar no EasyPanel
 # ou para rodar localmente com: docker-compose up -d
 
-version: '3.8'
-
 services:
   # ====== PostgreSQL ======
   postgres:
@@ -37,8 +35,8 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       NODE_ENV: production
-    ports:
-      - "3001:3001"
+    expose:
+      - "3001"
     depends_on:
       - postgres
       - redis
@@ -51,8 +49,8 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL}
     restart: unless-stopped
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     depends_on:
       - backend
 
