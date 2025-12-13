@@ -212,6 +212,9 @@ const App: React.FC = () => {
     localStorage.removeItem('lumos_authenticated');
     localStorage.removeItem('lumos_user_email');
     setIsAuthenticated(false);
+    // Limpar estados para evitar problemas ao fazer login novamente
+    setAssistants([]);
+    setActiveAssistantId(null);
   };
 
   const handleModelChange = (modelId: string) => {
