@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, User, Bot, Image as ImageIcon, Save, Upload, Loader2 } from 'lucide-react';
+import { X, User, Bot, Image as ImageIcon, Save, Upload, Loader2, Activity } from 'lucide-react';
 import { UserSettings } from '../types';
-import { usageAPI } from '../services/api';
+import { usageAPI, usuarioAPI, monitoramentoAPI } from '../services/api';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -17,30 +17,70 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
   const [usageLoading, setUsageLoading] = useState(false);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [usageSummary, setUsageSummary] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const [apiStats, setApiStats] = useState<any>(null);
+  const [loadingUser, setLoadingUser] = useState(false);
 
-  // Reset form when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setFormData(settings);
-    }
-  }, [isOpen, settings]);
-
+  // Carregar dados do usuário e estatísticas quando modal abre
   useEffect(() => {
     if (!isOpen) return;
+    
+    // Carregar dados do usuário do banco
+    setLoadingUser(true);
+    usuarioAPI.buscar()
+      .then((usuario) => {
+        setFormData(prev => ({
+          ...prev,
+          userName: usuario.nome || prev.userName,
+          userAvatarUrl: usuario.foto_base64 || prev.userAvatarUrl
+        }));
+      })
+      .catch((err) => console.error('Erro ao carregar usuário:', err))
+      .finally(() => setLoadingUser(false));
+    
+    // Carregar uso da API
     setUsageLoading(true);
     setUsageError(null);
     usageAPI.resumo()
       .then((data) => setUsageSummary(data))
       .catch((err) => setUsageError(err?.message || 'Erro ao buscar uso'))
       .finally(() => setUsageLoading(false));
+    
+    // Carregar estatísticas de monitoramento
+    monitoramentoAPI.estatisticas('24h')
+      .then((stats) => setApiStats(stats))
+      .catch((err) => console.error('Erro ao carregar estatísticas:', err));
   }, [isOpen]);
+
+  // Reset form when settings change
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(settings);
+    }
+  }, [settings]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
-    onClose();
+    setSaving(true);
+    
+    try {
+      // Salvar no banco de dados
+      await usuarioAPI.atualizar({
+        nome: formData.userName,
+        foto_base64: formData.userAvatarUrl
+      });
+      
+      // Salvar localmente também
+      onSave(formData);
+      onClose();
+    } catch (err) {
+      console.error('Erro ao salvar usuário:', err);
+      alert('Erro ao salvar. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Converter arquivo para base64
@@ -230,6 +270,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             </div>
           </div>
 
+          {/* Monitoramento de API */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+              <Activity className="w-4 h-4" /> Monitoramento (últimas 24h)
+            </label>
+            <div className="rounded-lg border border-gray-700 bg-gray-900/40 p-3">
+              {apiStats ? (
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-400">Chamadas:</span>
+                    <span className="ml-2 text-gray-200 font-semibold">{apiStats.total_chamadas}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Sucesso:</span>
+                    <span className="ml-2 text-emerald-400 font-semibold">{apiStats.taxa_sucesso}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Tokens:</span>
+                    <span className="ml-2 text-gray-200 font-semibold">{(apiStats.tokens?.total || 0).toLocaleString('pt-BR')}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Tempo médio:</span>
+                    <span className="ml-2 text-gray-200 font-semibold">{apiStats.tempo_medio_ms}ms</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-400">Carregando...</div>
+              )}
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-2">
             <button
               type="button"
@@ -240,9 +311,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2"
+              disabled={saving || loadingUser}
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 disabled:cursor-not-allowed rounded-lg transition-colors shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2"
             >
-              <Save className="w-4 h-4" /> Salvar Alterações
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" /> Salvar Alterações
+                </>
+              )}
             </button>
           </div>
         </form>

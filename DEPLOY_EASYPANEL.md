@@ -8,7 +8,7 @@ Este guia mostra como fazer deploy do Lumos IA no EasyPanel usando docker-compos
 
 1. ✅ EasyPanel instalado na sua VPS
 2. ✅ Repositório Git: `https://github.com/juliolopes-dev/lumos_ai.git`
-3. ✅ Chave da API OpenAI
+3. ✅ Chave da API Anthropic (Claude)
 
 ---
 
@@ -42,14 +42,19 @@ Na aba **"Environment"**, adicione as seguintes variáveis:
 
 ```env
 POSTGRES_PASSWORD=SuaSenhaSegura123
-OPENAI_API_KEY=sk-sua-chave-openai-aqui
-OPENAI_MODEL=gpt-4.1-mini
+ANTHROPIC_API_KEY=sk-ant-sua-chave-anthropic-aqui
+CLAUDE_MODEL=claude-sonnet-4-5-20250929
+CLAUDE_MAX_TOKENS=4096
+CLAUDE_TEMPERATURE=0.7
+CLAUDE_INPUT_USD_PER_1M_TOKENS=3.00
+CLAUDE_OUTPUT_USD_PER_1M_TOKENS=15.00
+USD_TO_BRL=5.42
 VITE_API_URL=http://backend:3001/api
 ```
 
 ⚠️ **IMPORTANTE**: 
 - Substitua `SuaSenhaSegura123` por uma senha forte
-- Substitua `sk-sua-chave-openai-aqui` pela sua chave REAL da OpenAI
+- Substitua `sk-ant-sua-chave-anthropic-aqui` pela sua chave REAL da Anthropic
 
 ---
 
@@ -181,8 +186,8 @@ Para atualizar após fazer mudanças no código:
 ### Erro no PostgreSQL
 **Solução**: Verifique se `POSTGRES_PASSWORD` está definido nas variáveis de ambiente
 
-### Erro "OpenAI API key not found"
-**Solução**: Verifique se `OPENAI_API_KEY` está configurado corretamente
+### Erro "Anthropic API key not found"
+**Solução**: Verifique se `ANTHROPIC_API_KEY` está configurado corretamente
 
 ### Serviços não iniciam na ordem
 **Solução**: O docker-compose já tem `depends_on` configurado, aguarde alguns segundos
@@ -194,8 +199,10 @@ Para atualizar após fazer mudanças no código:
 | Variável | Obrigatória? | Descrição |
 |----------|--------------|-----------|
 | `POSTGRES_PASSWORD` | ✅ Sim | Senha do banco PostgreSQL |
-| `OPENAI_API_KEY` | ✅ Sim | Chave da API OpenAI |
-| `OPENAI_MODEL` | ⚠️ Opcional | Modelo GPT (padrão: gpt-4.1-mini) |
+| `ANTHROPIC_API_KEY` | ✅ Sim | Chave da API Anthropic (Claude) |
+| `CLAUDE_MODEL` | ⚠️ Opcional | Modelo Claude (padrão: claude-sonnet-4-5-20250929) |
+| `CLAUDE_MAX_TOKENS` | ⚠️ Opcional | Máximo de tokens (padrão: 4096) |
+| `CLAUDE_TEMPERATURE` | ⚠️ Opcional | Temperature (padrão: 0.7) |
 | `VITE_API_URL` | ⚠️ Condicional | URL da API (use domínio interno ou externo) |
 
 ---

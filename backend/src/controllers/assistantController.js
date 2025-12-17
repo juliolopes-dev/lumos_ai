@@ -4,7 +4,7 @@ const assistantController = {
   // POST /api/assistentes
   async criar(req, res) {
     try {
-      const { titulo, contexto } = req.body;
+      const { titulo, contexto, temperature } = req.body;
 
       if (!titulo || !contexto) {
         return res.status(400).json({ 
@@ -12,7 +12,8 @@ const assistantController = {
         });
       }
 
-      const assistente = await Assistant.criar(titulo, contexto);
+      const temp = temperature !== undefined ? parseFloat(temperature) : 0.7;
+      const assistente = await Assistant.criar(titulo, contexto, temp);
       res.status(201).json(assistente);
     } catch (error) {
       console.error('Erro ao criar assistente:', error);
@@ -52,7 +53,7 @@ const assistantController = {
   async atualizar(req, res) {
     try {
       const { id } = req.params;
-      const { titulo, contexto } = req.body;
+      const { titulo, contexto, temperature } = req.body;
 
       if (!titulo || !contexto) {
         return res.status(400).json({ 
@@ -60,7 +61,8 @@ const assistantController = {
         });
       }
 
-      const assistente = await Assistant.atualizar(id, titulo, contexto);
+      const temp = temperature !== undefined ? parseFloat(temperature) : null;
+      const assistente = await Assistant.atualizar(id, titulo, contexto, temp);
 
       if (!assistente) {
         return res.status(404).json({ erro: 'Assistente não encontrado' });

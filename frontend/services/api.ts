@@ -41,7 +41,7 @@ const _assistantsApiImpl = {
     return requestJson<Assistant>(`${API_BASE_URL}/assistentes/${id}`);
   },
 
-  async criar(data: { titulo: string; contexto: string }): Promise<Assistant> {
+  async criar(data: { titulo: string; contexto: string; temperature?: number }): Promise<Assistant> {
     return requestJson<Assistant>(`${API_BASE_URL}/assistentes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -49,7 +49,7 @@ const _assistantsApiImpl = {
     });
   },
 
-  async atualizar(id: string, data: { titulo: string; contexto: string }): Promise<Assistant> {
+  async atualizar(id: string, data: { titulo: string; contexto: string; temperature?: number }): Promise<Assistant> {
     return requestJson<Assistant>(`${API_BASE_URL}/assistentes/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -77,12 +77,13 @@ const _assistantsApiImpl = {
   async enviar(
     assistenteId: string,
     mensagem: string,
-    anexos: Attachment[] = []
+    anexos: Attachment[] = [],
+    temperature?: number
   ): Promise<{ resposta: string; anexos?: Attachment[] }> {
     return requestJson<{ resposta: string; anexos?: Attachment[] }>(`${API_BASE_URL}/chat/${assistenteId}/enviar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mensagem, anexos })
+      body: JSON.stringify({ mensagem, anexos, temperature })
     });
   },
 
@@ -127,4 +128,79 @@ export const transcribeAudio = async (
   // Pode ser implementado no backend futuramente
   console.warn("Transcrição de áudio não implementada no backend");
   return "";
+};
+
+// API para Usuário
+export interface Usuario {
+  id: number;
+  nome: string;
+  email: string;
+  foto_url?: string;
+  foto_base64?: string;
+  configuracoes?: Record<string, any>;
+  criado_em?: string;
+  atualizado_em?: string;
+}
+
+export const usuarioAPI = {
+  async buscar(): Promise<Usuario> {
+    return requestJson<Usuario>(`${API_BASE_URL}/usuario`);
+  },
+
+  async atualizar(data: Partial<Usuario>): Promise<{ mensagem: string; usuario: Usuario }> {
+    return requestJson<{ mensagem: string; usuario: Usuario }>(`${API_BASE_URL}/usuario`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  },
+
+  async atualizarFoto(foto_base64: string): Promise<{ mensagem: string; foto_base64: string }> {
+    return requestJson<{ mensagem: string; foto_base64: string }>(`${API_BASE_URL}/usuario/foto`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ foto_base64 })
+    });
+  },
+
+  async atualizarConfiguracoes(configuracoes: Record<string, any>): Promise<{ mensagem: string; configuracoes: Record<string, any> }> {
+    return requestJson<{ mensagem: string; configuracoes: Record<string, any> }>(`${API_BASE_URL}/usuario/configuracoes`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ configuracoes })
+    });
+  }
+};
+
+// API para Monitoramento
+export interface EstatisticasAPI {
+  periodo: string;
+  total_chamadas: number;
+  sucesso: number;
+  erros: number;
+  taxa_sucesso: string;
+  tokens: {
+    input: number;
+    output: number;
+    total: number;
+    cache_read: number;
+    cache_creation: number;
+  };
+  tempo_medio_ms: number;
+  primeira_chamada?: string;
+  ultima_chamada?: string;
+}
+
+export const monitoramentoAPI = {
+  async estatisticas(periodo: string = '24h'): Promise<EstatisticasAPI> {
+    return requestJson<EstatisticasAPI>(`${API_BASE_URL}/monitoramento/estatisticas?periodo=${periodo}`);
+  },
+
+  async porHora(horas: number = 24): Promise<{ periodo_horas: number; dados: Array<{ hora: string; chamadas: number; tokens: number }> }> {
+    return requestJson<any>(`${API_BASE_URL}/monitoramento/por-hora?horas=${horas}`);
+  },
+
+  async ultimas(limite: number = 50): Promise<{ total: number; chamadas: any[] }> {
+    return requestJson<any>(`${API_BASE_URL}/monitoramento/ultimas?limite=${limite}`);
+  }
 };

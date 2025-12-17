@@ -79,7 +79,8 @@ const App: React.FC = () => {
         id: String(a.id),
         name: a.titulo || a.name,
         systemInstruction: a.contexto || a.systemInstruction || '',
-        model: 'gpt-4.1-mini',
+        model: 'claude-sonnet-4-5-20250929',
+        temperature: Number(a.temperature) || 0.7,
         messages: [],
         createdAt: a.criado_em ? new Date(a.criado_em).getTime() : Date.now()
       }));
@@ -104,17 +105,18 @@ const App: React.FC = () => {
 
   const editingAssistant = assistants.find(a => String(a.id) === editingAssistantId) || null;
 
-  const handleUpdateAssistant = async (data: { name: string; systemInstruction: string }) => {
+  const handleUpdateAssistant = async (data: { name: string; systemInstruction: string; temperature?: number }) => {
     if (!editingAssistantId) return;
     try {
       await assistantesAPI.atualizar(editingAssistantId, {
         titulo: data.name,
-        contexto: data.systemInstruction
+        contexto: data.systemInstruction,
+        temperature: data.temperature
       });
 
       setAssistants(prev => prev.map(a => {
         if (String(a.id) === editingAssistantId) {
-          return { ...a, name: data.name, systemInstruction: data.systemInstruction };
+          return { ...a, name: data.name, systemInstruction: data.systemInstruction, temperature: data.temperature ?? a.temperature };
         }
         return a;
       }));
@@ -158,14 +160,16 @@ const App: React.FC = () => {
       // Criar no backend
       const created = await assistantesAPI.criar({
         titulo: data.name,
-        contexto: data.systemInstruction
+        contexto: data.systemInstruction,
+        temperature: data.temperature ?? 0.7
       });
       
       const newAssistant: Assistant = {
         id: String(created.id),
         name: data.name,
         systemInstruction: data.systemInstruction,
-        model: 'gpt-4.1-mini',
+        model: 'claude-sonnet-4-5-20250929',
+        temperature: data.temperature ?? 0.7,
         messages: [],
         createdAt: Date.now()
       };
@@ -226,7 +230,7 @@ const App: React.FC = () => {
     }));
   };
 
-  const handleSendMessage = async (text: string, attachments: Attachment[]) => {
+  const handleSendMessage = async (text: string, attachments: Attachment[], temperature: number) => {
     if (!activeAssistant || !activeAssistantId) return;
 
     const userMessage: Message = {
@@ -234,6 +238,7 @@ const App: React.FC = () => {
       role: 'user',
       content: text,
       attachments: attachments,
+      temperature: temperature,
       timestamp: Date.now()
     };
 
@@ -249,7 +254,7 @@ const App: React.FC = () => {
 
     try {
       // 2. Send to backend API
-      const result = await chatAPI.enviar(activeAssistantId, text, attachments);
+      const result = await chatAPI.enviar(activeAssistantId, text, attachments, temperature);
       
       // 3. Add response message
       const responseMessage: Message = {

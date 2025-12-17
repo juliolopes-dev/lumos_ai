@@ -2,13 +2,13 @@ const { pool } = require('../config/database');
 
 const Assistant = {
   // Criar novo assistente
-  async criar(titulo, contexto) {
+  async criar(titulo, contexto, temperature = 0.7) {
     const query = `
-      INSERT INTO assistentes (titulo, contexto)
-      VALUES ($1, $2)
+      INSERT INTO assistentes (titulo, contexto, temperature)
+      VALUES ($1, $2, $3)
       RETURNING *;
     `;
-    const result = await pool.query(query, [titulo, contexto]);
+    const result = await pool.query(query, [titulo, contexto, temperature]);
     return result.rows[0];
   },
 
@@ -33,7 +33,19 @@ const Assistant = {
   },
 
   // Atualizar assistente
-  async atualizar(id, titulo, contexto) {
+  async atualizar(id, titulo, contexto, temperature = null) {
+    // Se temperature for passado, atualiza também
+    if (temperature !== null) {
+      const query = `
+        UPDATE assistentes
+        SET titulo = $1, contexto = $2, temperature = $3, atualizado_em = CURRENT_TIMESTAMP
+        WHERE id = $4
+        RETURNING *;
+      `;
+      const result = await pool.query(query, [titulo, contexto, temperature, id]);
+      return result.rows[0];
+    }
+    
     const query = `
       UPDATE assistentes
       SET titulo = $1, contexto = $2, atualizado_em = CURRENT_TIMESTAMP

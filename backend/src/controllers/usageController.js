@@ -5,39 +5,46 @@ const usageController = {
     try {
       const summary = await UsageEvent.resumoMesAtual();
 
-      const usdToBrl = Number(process.env.OPENAI_USD_TO_BRL || 0);
-      const inputUsdPer1M = Number(process.env.OPENAI_INPUT_USD_PER_1M_TOKENS || 0);
-      const outputUsdPer1M = Number(process.env.OPENAI_OUTPUT_USD_PER_1M_TOKENS || 0);
-      const imageUsdPerImage = Number(process.env.OPENAI_IMAGE_USD_PER_IMAGE || 0);
+      const usdToBrl = Number(process.env.USD_TO_BRL || 5.42);
+      
+      // Claude pricing
+      const claudeInputPer1M = Number(process.env.CLAUDE_INPUT_USD_PER_1M_TOKENS || 3.00);
+      const claudeOutputPer1M = Number(process.env.CLAUDE_OUTPUT_USD_PER_1M_TOKENS || 15.00);
 
-      const missingPricing = !(usdToBrl > 0 && (inputUsdPer1M > 0 || outputUsdPer1M > 0 || imageUsdPerImage > 0));
+      const missingPricing = !(usdToBrl > 0 && (claudeInputPer1M > 0 || claudeOutputPer1M > 0));
 
-      const usdTokens = (summary.prompt_tokens / 1_000_000) * inputUsdPer1M
-        + (summary.completion_tokens / 1_000_000) * outputUsdPer1M;
-      const usdImages = summary.n_images * imageUsdPerImage;
-      const usdTotal = usdTokens + usdImages;
+      // Calcular custo de tokens (Claude)
+      const usdTokens = (summary.prompt_tokens / 1_000_000) * claudeInputPer1M
+        + (summary.completion_tokens / 1_000_000) * claudeOutputPer1M;
+      
+      const usdTotal = usdTokens;
       const brlTotal = missingPricing ? null : usdTotal * usdToBrl;
+
+      // Calcular economia do cache
+      const cacheReadTokens = summary.cache_read_tokens || 0;
+      const cacheSavingsUsd = (cacheReadTokens / 1_000_000) * claudeInputPer1M * 0.9; // 90% economia
 
       res.json({
         periodo: 'mes_atual',
         missing_pricing: missingPricing,
+        provider: 'claude',
         tokens: {
           prompt: summary.prompt_tokens,
           completion: summary.completion_tokens,
-          total: summary.total_tokens
-        },
-        imagens: {
-          total: summary.n_images
+          total: summary.total_tokens,
+          cache_creation: summary.cache_creation_tokens || 0,
+          cache_read: cacheReadTokens
         },
         precos: {
           usd_to_brl: usdToBrl,
-          input_usd_per_1m_tokens: inputUsdPer1M,
-          output_usd_per_1m_tokens: outputUsdPer1M,
-          image_usd_per_image: imageUsdPerImage
+          claude_input_usd_per_1m_tokens: claudeInputPer1M,
+          claude_output_usd_per_1m_tokens: claudeOutputPer1M
         },
         custo: {
           usd_total: usdTotal,
-          brl_total: brlTotal
+          brl_total: brlTotal,
+          cache_savings_usd: cacheSavingsUsd,
+          cache_savings_brl: cacheSavingsUsd * usdToBrl
         }
       });
     } catch (error) {

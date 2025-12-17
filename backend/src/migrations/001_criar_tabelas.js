@@ -10,6 +10,7 @@ const createTables = async (pool) => {
         id SERIAL PRIMARY KEY,
         titulo VARCHAR(255) NOT NULL,
         contexto TEXT NOT NULL,
+        temperature DECIMAL(3,2) DEFAULT 0.7,
         criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -60,6 +61,9 @@ const createTables = async (pool) => {
         total_tokens INTEGER DEFAULT 0,
         image_size VARCHAR(20),
         n_images INTEGER DEFAULT 0,
+        provider VARCHAR(20) DEFAULT 'claude',
+        cache_creation_tokens INTEGER DEFAULT 0,
+        cache_read_tokens INTEGER DEFAULT 0,
         criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);

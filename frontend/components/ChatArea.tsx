@@ -1,21 +1,46 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Send, Menu, Bot, User, Loader2, Paperclip, Mic, X, ChevronDown, StopCircle, Download } from 'lucide-react';
+import { Send, Menu, Bot, User, Loader2, Paperclip, Mic, X, ChevronDown, StopCircle, Download, FileText } from 'lucide-react';
 import { Assistant, Message, UserSettings, Attachment } from '../types';
 
 interface ChatAreaProps {
   assistant: Assistant | undefined;
   userSettings: UserSettings;
   isLoading: boolean;
-  onSendMessage: (text: string, attachments: Attachment[]) => void;
+  onSendMessage: (text: string, attachments: Attachment[], temperature: number) => void;
   onToggleSidebar: () => void;
   onModelChange: (modelId: string) => void;
 }
 
+// Helper functions para temperature
+const getTemperatureIcon = (temp: number): string => {
+  if (temp <= 0.3) return "🎯";
+  if (temp <= 0.6) return "⚖️";
+  if (temp <= 0.8) return "💡";
+  return "🎨";
+};
+
+const getTemperatureLabel = (temp: number): string => {
+  if (temp <= 0.3) return "Preciso";
+  if (temp <= 0.6) return "Balanceado";
+  if (temp <= 0.8) return "Criativo";
+  return "Inovador";
+};
+
+const getTemperatureDescription = (temp: number): string => {
+  if (temp <= 0.3) {
+    return "🎯 Preciso - Respostas técnicas e consistentes";
+  } else if (temp <= 0.6) {
+    return "⚖️ Balanceado - Equilíbrio ideal";
+  } else if (temp <= 0.8) {
+    return "💡 Criativo - Ideias variadas";
+  } else {
+    return "🎨 Inovador - Máxima criatividade";
+  }
+};
+
 const AVAILABLE_MODELS = [
-  { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini (Padrão)' },
-  { id: 'gpt-4', name: 'GPT-4 (Avançado)' },
-  { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo (Rápido)' },
+  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5' },
 ];
 
 const ChatArea: React.FC<ChatAreaProps> = ({ 
@@ -31,6 +56,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  const [temperature, setTemperature] = useState<number>(assistant?.temperature ?? 0.7);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -53,11 +79,21 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     scrollToBottom();
   }, [assistant?.messages, isLoading, attachments, isRecording, isTranscribing]);
 
+  // Sincronizar temperature quando assistente muda
+  useEffect(() => {
+    if (assistant?.temperature !== undefined && assistant?.temperature !== null) {
+      // Garantir que é número (PostgreSQL pode retornar string)
+      setTemperature(Number(assistant.temperature) || 0.7);
+    } else {
+      setTemperature(0.7);
+    }
+  }, [assistant?.id, assistant?.temperature]);
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if ((!input.trim() && attachments.length === 0) || isLoading || isTranscribing) return;
     
-    onSendMessage(input, attachments);
+    onSendMessage(input, attachments, temperature);
     setInput('');
     setAttachments([]);
     
@@ -92,8 +128,13 @@ const ChatArea: React.FC<ChatAreaProps> = ({
   };
 
   const addFileAsAttachment = (file: File) => {
+    // Validar tamanho por tipo
     if (file.type.startsWith('image/') && file.size > 4 * 1024 * 1024) {
       alert('A imagem é muito grande. Envie uma imagem de até 4MB.');
+      return;
+    }
+    if (file.type === 'application/pdf' && file.size > 32 * 1024 * 1024) {
+      alert('O PDF é muito grande. Envie um PDF de até 32MB.');
       return;
     }
 
@@ -102,8 +143,14 @@ const ChatArea: React.FC<ChatAreaProps> = ({
       const base64String = event.target?.result as string;
       const base64Data = base64String.split(',')[1];
 
+      // Determinar tipo do anexo
+      let attachmentType: 'image' | 'audio' | 'file' | 'pdf' = 'file';
+      if (file.type.startsWith('image/')) attachmentType = 'image';
+      else if (file.type.startsWith('audio/')) attachmentType = 'audio';
+      else if (file.type === 'application/pdf') attachmentType = 'pdf';
+
       const newAttachment: Attachment = {
-        type: file.type.startsWith('image/') ? 'image' : 'file',
+        type: attachmentType,
         mimeType: file.type,
         data: base64Data,
         fileName: file.name
@@ -135,12 +182,15 @@ const ChatArea: React.FC<ChatAreaProps> = ({
           .map((item) => item.getAsFile())
           .filter(Boolean) as File[];
 
-    const images = fileList.filter((f) => f.type.startsWith('image/'));
-    if (images.length === 0) return;
+    // Aceitar imagens e PDFs
+    const validFiles = fileList.filter((f) => 
+      f.type.startsWith('image/') || f.type === 'application/pdf'
+    );
+    if (validFiles.length === 0) return;
 
     e.preventDefault();
-    for (const img of images) {
-      addFileAsAttachment(img);
+    for (const file of validFiles) {
+      addFileAsAttachment(file);
     }
   };
 
@@ -151,11 +201,14 @@ const ChatArea: React.FC<ChatAreaProps> = ({
   const handleDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
     const droppedFiles = Array.from(e.dataTransfer?.files || []);
-    const images = droppedFiles.filter((f) => f.type.startsWith('image/'));
-    if (images.length === 0) return;
+    // Aceitar imagens e PDFs
+    const validFiles = droppedFiles.filter((f) => 
+      f.type.startsWith('image/') || f.type === 'application/pdf'
+    );
+    if (validFiles.length === 0) return;
 
-    for (const img of images) {
-      addFileAsAttachment(img);
+    for (const file of validFiles) {
+      addFileAsAttachment(file);
     }
   };
 
@@ -474,6 +527,11 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                                </div>
                              ) : att.type === 'audio' ? (
                                <audio controls src={`data:${att.mimeType};base64,${att.data}`} className="w-64" />
+                             ) : att.type === 'pdf' ? (
+                               <div className="p-3 flex items-center gap-2 text-sm text-gray-300">
+                                 <FileText className="w-5 h-5 text-red-400" />
+                                 <span>{att.fileName || 'documento.pdf'}</span>
+                               </div>
                              ) : (
                                <div className="p-3 flex items-center gap-2 text-sm text-gray-300">
                                  <Paperclip className="w-4 h-4" />
@@ -523,8 +581,73 @@ const ChatArea: React.FC<ChatAreaProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="w-full bg-gray-800 border-t border-gray-700 p-4">
-        <div className="max-w-3xl mx-auto">
+      <div className="w-full bg-gray-800 border-t border-gray-700">
+        {/* Temperature Control */}
+        <div className="max-w-3xl mx-auto px-4 pt-3 pb-2">
+          <div className="flex items-center gap-3 p-2 bg-gray-700/30 rounded-lg border border-gray-700">
+            {/* Ícone + Label */}
+            <div className="flex items-center gap-2 min-w-[100px]">
+              <span className="text-lg">{getTemperatureIcon(temperature)}</span>
+              <span className="text-xs font-medium text-gray-400">
+                Criatividade
+              </span>
+            </div>
+            
+            {/* Slider */}
+            <div className="relative flex-1 group">
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={temperature}
+                onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                className="w-full h-2 bg-gradient-to-r from-blue-500/50 via-purple-500/50 to-pink-500/50 rounded-full cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gray-300 hover:[&::-webkit-slider-thumb]:scale-110 [&::-webkit-slider-thumb]:transition-transform"
+              />
+              {/* Tooltip */}
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-gray-700 shadow-lg">
+                {getTemperatureDescription(temperature)}
+              </div>
+            </div>
+            
+            {/* Valor + Modo */}
+            <div className="flex items-center gap-2 min-w-[90px] justify-end">
+              <span className="text-sm font-bold text-gray-200">
+                {temperature.toFixed(1)}
+              </span>
+              <span className="text-xs text-gray-500 hidden sm:inline">
+                {getTemperatureLabel(temperature)}
+              </span>
+            </div>
+            
+            {/* Presets rápidos */}
+            <div className="flex gap-1 border-l border-gray-600 pl-2">
+              <button
+                onClick={() => setTemperature(0.3)}
+                className={`px-2 py-1 text-xs rounded transition-colors ${temperature === 0.3 ? 'bg-blue-500/30 ring-1 ring-blue-500' : 'bg-gray-700 hover:bg-gray-600'}`}
+                title="Preciso - Respostas técnicas"
+              >
+                🎯
+              </button>
+              <button
+                onClick={() => setTemperature(0.7)}
+                className={`px-2 py-1 text-xs rounded transition-colors ${temperature === 0.7 ? 'bg-purple-500/30 ring-1 ring-purple-500' : 'bg-gray-700 hover:bg-gray-600'}`}
+                title="Balanceado - Equilíbrio ideal"
+              >
+                ⚖️
+              </button>
+              <button
+                onClick={() => setTemperature(0.9)}
+                className={`px-2 py-1 text-xs rounded transition-colors ${temperature === 0.9 ? 'bg-pink-500/30 ring-1 ring-pink-500' : 'bg-gray-700 hover:bg-gray-600'}`}
+                title="Criativo - Máxima criatividade"
+              >
+                🎨
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-3xl mx-auto px-4 pb-4">
           {/* Attachments Preview */}
           {attachments.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
@@ -535,6 +658,8 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                       <img src={`data:${att.mimeType};base64,${att.data}`} className="w-full h-full object-cover" />
                     ) : att.type === 'audio' ? (
                       <Mic className="w-8 h-8 text-emerald-400" />
+                    ) : att.type === 'pdf' ? (
+                      <FileText className="w-8 h-8 text-red-400" />
                     ) : (
                       <Paperclip className="w-8 h-8 text-gray-400" />
                     )}
@@ -569,7 +694,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
               ref={fileInputRef} 
               className="hidden" 
               onChange={handleFileChange}
-              accept="image/*" // For now focusing on images as per Gemini best support, but can be any
+              accept="image/*,application/pdf"
             />
             
             <button

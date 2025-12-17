@@ -1,5 +1,5 @@
 export interface Attachment {
-  type: 'image' | 'audio' | 'file';
+  type: 'image' | 'audio' | 'file' | 'pdf';
   mimeType: string;
   data: string; // Base64 string
   fileName?: string;
@@ -11,6 +11,7 @@ export interface Message {
   content: string;
   timestamp: number;
   attachments?: Attachment[];
+  temperature?: number;
   // Campos do backend
   papel?: 'usuario' | 'assistente';
   conteudo?: string;
@@ -21,6 +22,7 @@ export interface Assistant {
   name: string;
   systemInstruction: string;
   model: string;
+  temperature?: number;
   messages: Message[];
   createdAt: number;
   // Campos do backend
@@ -31,6 +33,7 @@ export interface Assistant {
 export type CreateAssistantData = {
   name: string;
   systemInstruction: string;
+  temperature?: number;
 };
 
 export interface UserSettings {
