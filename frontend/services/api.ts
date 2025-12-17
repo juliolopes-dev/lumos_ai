@@ -1,7 +1,8 @@
 import { Message, Assistant, Attachment } from "../types";
 
 // @ts-ignore - Vite env
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+// Em produção usa /api (proxy nginx), em dev usa localhost:3001
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:3001/api');
 
 const safeReadText = async (response: Response): Promise<string> => {
   try {
